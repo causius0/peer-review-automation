@@ -120,7 +120,7 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
               required
             />
             <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Minimum 100 characters required. Include your abstract, methods, results, and discussion.
+              Minimum 100 characters required. For demos, articles over 15,000 characters will be automatically truncated to avoid rate limits.
             </p>
           </div>
         )}
