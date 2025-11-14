@@ -10,15 +10,17 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
-    "@napi-rs/canvas": "^0.1.82",
-    "@types/pdf-parse": "^1.1.5",
-    "canvas": "^3.2.0",
     "cheerio": "^1.1.2",
     "next": "16.0.3",
-    "pdf-parse": "^2.4.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-dropzone": "^14.3.8"
+  },
+  "optionalDependencies": {
+    "@napi-rs/canvas": "^0.1.82",
+    "@types/pdf-parse": "^1.1.5",
+    "canvas": "^3.2.0",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -411,10 +411,14 @@ export interface ReviewReport {
 
 /**
  * Request payload for initiating a review
+ * Must include either pdfBase64 OR articleText
  */
 export interface ReviewRequest {
-  /** PDF file as base64 string */
-  pdfBase64: string;
+  /** PDF file as base64 string (optional - required if articleText not provided) */
+  pdfBase64?: string;
+
+  /** Plain text article content (optional - required if pdfBase64 not provided) */
+  articleText?: string;
 
   /** Original filename */
   filename: string;

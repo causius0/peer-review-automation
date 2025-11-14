@@ -10,7 +10,7 @@ An advanced AI-powered peer review system that simulates the academic peer revie
 - **Comprehensive Reports**: Detailed feedback with strengths, weaknesses, and actionable recommendations
 - **Journal-Specific Criteria**: Automatic extraction of publishing criteria from journal websites
 - **Beautiful UI**: Modern, responsive interface built with Next.js and Tailwind CSS
-- **Export Functionality**: Download review reports as JSON
+- **Export Functionality**: Download review reports as Markdown, PDF, or JSON
 
 ## Tech Stack
 
@@ -119,7 +119,10 @@ npm start
    - Conduct up to 3 review iterations
    - Generate a comprehensive report
 5. **Review Results**: Explore detailed feedback, recommendations, and trajectory analysis
-6. **Export Report**: Download the review as JSON for your records
+6. **Export Report**: Download the review in your preferred format:
+   - **Markdown (.md)**: Clean, readable format perfect for documentation
+   - **PDF**: Professional printable report via browser print dialog
+   - **JSON**: Structured data for programmatic processing
 
 ### Review Process Timeline
 
