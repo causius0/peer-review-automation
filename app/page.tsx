@@ -24,13 +24,14 @@ export default function Home() {
    * Handles file upload and initiates review process
    */
   const handleReviewSubmit = async (
-    pdfBase64: string,
+    content: string,
     filename: string,
-    journalName: string
+    journalName: string,
+    isText: boolean = false
   ) => {
     setIsReviewing(true);
     setProgress(0);
-    setCurrentStage('Uploading...');
+    setCurrentStage(isText ? 'Processing text...' : 'Uploading...');
     setError(null);
     setReport(null);
 
@@ -42,7 +43,8 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          pdfBase64,
+          pdfBase64: isText ? null : content,
+          articleText: isText ? content : null,
           filename,
           journalName,
         }),

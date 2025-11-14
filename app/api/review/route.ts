@@ -50,32 +50,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { pdfBase64, filename, journalName } = body;
+    const { pdfBase64, articleText, filename, journalName } = body;
 
-    // Check file size
-    const estimatedSize = (pdfBase64.length * 3) / 4; // Base64 to bytes
-    if (estimatedSize > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `File size exceeds maximum allowed size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
-        } as ReviewResponse,
-        { status: 413 }
-      );
+    // Check file size (only for PDF uploads)
+    if (pdfBase64) {
+      const estimatedSize = (pdfBase64.length * 3) / 4; // Base64 to bytes
+      if (estimatedSize > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `File size exceeds maximum allowed size of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+          } as ReviewResponse,
+          { status: 413 }
+        );
+      }
     }
 
     // Log request
     console.log('\n=================================================');
     console.log('NEW REVIEW REQUEST');
     console.log('=================================================');
+    console.log(`Input Type: ${articleText ? 'Plain Text' : 'PDF'}`);
     console.log(`File: ${filename}`);
     console.log(`Journal: ${journalName}`);
-    console.log(`Size: ${(estimatedSize / 1024).toFixed(2)} KB`);
+    if (pdfBase64) {
+      const estimatedSize = (pdfBase64.length * 3) / 4;
+      console.log(`Size: ${(estimatedSize / 1024).toFixed(2)} KB`);
+    } else {
+      console.log(`Text Length: ${articleText.length} characters`);
+    }
     console.log('=================================================\n');
 
     // Orchestrate the review process
     const report = await orchestrateReview(
-      pdfBase64,
+      pdfBase64 || articleText, // Pass either PDF or text
       filename,
       journalName,
       // Progress callback - can be extended to support streaming updates
@@ -83,7 +91,8 @@ export async function POST(request: NextRequest) {
         console.log(
           `[${percentage}%] Iteration ${iteration} - ${stage}: ${message}`
         );
-      }
+      },
+      !pdfBase64 // isPlainText flag
     );
 
     // Calculate processing time
@@ -156,8 +165,24 @@ function validateRequest(body: any): string | null {
     return 'Request body is required';
   }
 
-  if (!body.pdfBase64 || typeof body.pdfBase64 !== 'string') {
-    return 'pdfBase64 field is required and must be a string';
+  // Must have either pdfBase64 or articleText
+  if (!body.pdfBase64 && !body.articleText) {
+    return 'Either pdfBase64 or articleText field is required';
+  }
+
+  // Validate pdfBase64 if provided
+  if (body.pdfBase64 && typeof body.pdfBase64 !== 'string') {
+    return 'pdfBase64 must be a string';
+  }
+
+  // Validate articleText if provided
+  if (body.articleText && typeof body.articleText !== 'string') {
+    return 'articleText must be a string';
+  }
+
+  // Validate text length
+  if (body.articleText && body.articleText.length < 100) {
+    return 'Article text must be at least 100 characters';
   }
 
   if (!body.filename || typeof body.filename !== 'string') {
@@ -166,11 +191,6 @@ function validateRequest(body: any): string | null {
 
   if (!body.journalName || typeof body.journalName !== 'string') {
     return 'journalName field is required and must be a string';
-  }
-
-  // Validate filename extension
-  if (!body.filename.toLowerCase().endsWith('.pdf')) {
-    return 'Only PDF files are supported';
   }
 
   // Validate journal name length

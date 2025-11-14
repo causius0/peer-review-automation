@@ -44,10 +44,11 @@ export type ProgressCallback = (
 /**
  * Main orchestration function that runs the complete review process
  *
- * @param pdfBase64 - Base64-encoded PDF data
- * @param filename - Original PDF filename
+ * @param contentOrPdfBase64 - Either plain text or base64-encoded PDF data
+ * @param filename - Original filename
  * @param journalName - Target journal name
  * @param onProgress - Optional callback for progress updates
+ * @param isPlainText - If true, treats input as plain text instead of PDF
  * @returns Complete review report
  * @throws Error if any step fails
  *
@@ -57,40 +58,61 @@ export type ProgressCallback = (
  *   pdfBase64,
  *   'article.pdf',
  *   'Nature',
- *   (stage, iter, pct, msg) => console.log(`${stage}: ${msg}`)
+ *   (stage, iter, pct, msg) => console.log(`${stage}: ${msg}`),
+ *   false
  * );
  * ```
  */
 export async function orchestrateReview(
-  pdfBase64: string,
+  contentOrPdfBase64: string,
   filename: string,
   journalName: string,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  isPlainText: boolean = false
 ): Promise<ReviewReport> {
   // Validate API key before starting
   validateAPIKey();
 
   const startTime = Date.now();
 
-  // ========================================================================
-  // STEP 1: Extract text from PDF
-  // ========================================================================
-  onProgress?.('extracting_text', 0, 5, 'Extracting text from PDF...');
+  let articleText: string;
+  let articleTitle: string;
 
-  const pdfResult = await extractTextFromBase64PDF(pdfBase64);
-  const articleText = pdfResult.text;
-  const articleTitle =
-    pdfResult.metadata?.title || extractTitle(articleText) || filename;
+  if (isPlainText) {
+    // ========================================================================
+    // STEP 1: Use provided plain text
+    // ========================================================================
+    onProgress?.('processing_text', 0, 5, 'Processing article text...');
 
-  if (!articleText || articleText.length < 500) {
-    throw new Error(
-      'Extracted text is too short. PDF may be corrupted or contain only images.'
+    articleText = contentOrPdfBase64;
+    articleTitle = extractTitle(articleText) || filename.replace(/\.[^/.]+$/, '');
+
+    if (!articleText || articleText.length < 100) {
+      throw new Error('Article text is too short (minimum 100 characters required).');
+    }
+
+    console.log(`✓ Received ${articleText.length} characters of text`);
+  } else {
+    // ========================================================================
+    // STEP 1: Extract text from PDF
+    // ========================================================================
+    onProgress?.('extracting_text', 0, 5, 'Extracting text from PDF...');
+
+    const pdfResult = await extractTextFromBase64PDF(contentOrPdfBase64);
+    articleText = pdfResult.text;
+    articleTitle =
+      pdfResult.metadata?.title || extractTitle(articleText) || filename;
+
+    if (!articleText || articleText.length < 500) {
+      throw new Error(
+        'Extracted text is too short. PDF may be corrupted or contain only images.'
+      );
+    }
+
+    console.log(
+      `✓ Extracted ${pdfResult.pageCount} pages, ${articleText.length} characters`
     );
   }
-
-  console.log(
-    `✓ Extracted ${pdfResult.pageCount} pages, ${articleText.length} characters`
-  );
 
   // ========================================================================
   // STEP 2: Fetch journal criteria

@@ -1,58 +1,22 @@
 /**
  * Upload Form Component
  *
- * Provides drag-and-drop PDF upload interface and journal name input.
- * Uses react-dropzone for robust file handling.
+ * Provides both plain text input and PDF upload with journal name input.
  */
 
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useState } from 'react';
 
 interface UploadFormProps {
-  onSubmit: (pdfBase64: string, filename: string, journalName: string) => void;
+  onSubmit: (content: string, filename: string, journalName: string, isText: boolean) => void;
 }
 
 export default function UploadForm({ onSubmit }: UploadFormProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [inputMode, setInputMode] = useState<'text' | 'pdf'>('text');
+  const [articleText, setArticleText] = useState('');
   const [journalName, setJournalName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  /**
-   * Handles file drop/selection
-   */
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-    },
-    maxFiles: 1,
-    multiple: false,
-  });
-
-  /**
-   * Converts file to base64 string
-   */
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  };
 
   /**
    * Handles form submission
@@ -60,126 +24,81 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!file || !journalName.trim()) {
+    if (!journalName.trim() || !articleText.trim()) {
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      const base64 = await fileToBase64(file);
-      onSubmit(base64, file.name, journalName.trim());
+      // For text mode, pass the text directly
+      onSubmit(articleText, 'article.txt', journalName.trim(), true);
     } catch (error) {
-      console.error('Error converting file:', error);
-      alert('Failed to process PDF file. Please try again.');
+      console.error('Error processing submission:', error);
+      alert('Failed to process submission. Please try again.');
       setIsProcessing(false);
     }
   };
 
-  /**
-   * Removes selected file
-   */
-  const handleRemoveFile = () => {
-    setFile(null);
-  };
-
-  /**
-   * Formats file size for display
-   */
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
-  };
-
-  const isValid = file && journalName.trim().length >= 2;
+  const isValid = articleText.trim().length > 100 && journalName.trim().length >= 2;
 
   return (
     <form onSubmit={handleSubmit} className="p-8">
       <div className="space-y-6">
-        {/* File Upload Area */}
+        {/* Mode Toggle */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
-            Research Article (PDF)
+            Input Method
           </label>
-
-          {!file ? (
-            <div
-              {...getRootProps()}
-              className={`
-                border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
-                transition-all duration-200
-                ${
-                  isDragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-slate-300 hover:border-slate-400 bg-slate-50'
-                }
-              `}
+          <div className="flex rounded-lg overflow-hidden border border-slate-300">
+            <button
+              type="button"
+              onClick={() => setInputMode('text')}
+              className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                inputMode === 'text'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-slate-700 hover:bg-slate-50'
+              }`}
             >
-              <input {...getInputProps()} />
-              <svg
-                className="mx-auto h-12 w-12 text-slate-400"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-              >
-                <path
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <p className="mt-2 text-sm text-slate-600">
-                {isDragActive ? (
-                  <span className="font-medium text-blue-600">Drop PDF here</span>
-                ) : (
-                  <>
-                    <span className="font-medium text-slate-700">
-                      Click to upload
-                    </span>{' '}
-                    or drag and drop
-                  </>
-                )}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">PDF files only, max 10MB</p>
-            </div>
-          ) : (
-            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <svg
-                    className="h-10 w-10 text-green-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{file.name}</p>
-                    <p className="text-xs text-slate-600">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveFile}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          )}
+              Paste Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('pdf')}
+              className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                inputMode === 'pdf'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+              disabled
+            >
+              Upload PDF (Coming Soon)
+            </button>
+          </div>
         </div>
+
+        {/* Text Input Area */}
+        {inputMode === 'text' && (
+          <div>
+            <label
+              htmlFor="articleText"
+              className="block text-sm font-medium text-slate-700 mb-2"
+            >
+              Article Text
+            </label>
+            <textarea
+              id="articleText"
+              value={articleText}
+              onChange={(e) => setArticleText(e.target.value)}
+              placeholder="Paste your research article text here (abstract, introduction, methods, results, discussion, etc.)..."
+              className="w-full h-96 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 font-mono text-sm resize-y"
+              required
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Minimum 100 characters required. Include your abstract, methods, results, and discussion.
+            </p>
+          </div>
+        )}
 
         {/* Journal Name Input */}
         <div>
@@ -194,7 +113,7 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
             id="journalName"
             value={journalName}
             onChange={(e) => setJournalName(e.target.value)}
-            placeholder="e.g., Nature, Science, Cell, NEJM"
+            placeholder="e.g., Nature, Science, Cell, NEJM, Journal of Public Health Policy"
             className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
             required
           />
