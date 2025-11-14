@@ -58,7 +58,9 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Light Mode Palette (Clean & Crisp) */
+/* Light Mode Palette (Clean & Crisp) - Disabled by default, dark mode forced */
+/* Uncomment below to enable system color scheme preference */
+/*
 @media (prefers-color-scheme: light) {
   :root {
     --color-bg-primary: #FFFFFF;
@@ -78,6 +80,7 @@
     --foreground: #111827;
   }
 }
+*/
 
 /* Base Styles */
 * {
