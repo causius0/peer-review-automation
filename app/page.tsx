@@ -1,65 +1,219 @@
-import Image from "next/image";
+/**
+ * Main Application Page
+ *
+ * This is the primary interface for the Automated Peer Review System.
+ * Users can upload PDFs, specify target journals, and view review results.
+ */
+
+'use client';
+
+import { useState } from 'react';
+import type { ReviewReport } from '@/types';
+import UploadForm from '@/components/ui/UploadForm';
+import ReviewResults from '@/components/review/ReviewResults';
+import LoadingProgress from '@/components/ui/LoadingProgress';
 
 export default function Home() {
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStage, setCurrentStage] = useState('');
+  const [report, setReport] = useState<ReviewReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Handles file upload and initiates review process
+   */
+  const handleReviewSubmit = async (
+    pdfBase64: string,
+    filename: string,
+    journalName: string
+  ) => {
+    setIsReviewing(true);
+    setProgress(0);
+    setCurrentStage('Uploading...');
+    setError(null);
+    setReport(null);
+
+    try {
+      // Call review API
+      const response = await fetch('/api/review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdfBase64,
+          filename,
+          journalName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Review failed');
+      }
+
+      // Set report
+      setReport(data.report);
+      setProgress(100);
+      setCurrentStage('Complete!');
+    } catch (err) {
+      console.error('Review error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setIsReviewing(false);
+    }
+  };
+
+  /**
+   * Resets the form for a new review
+   */
+  const handleNewReview = () => {
+    setIsReviewing(false);
+    setProgress(0);
+    setCurrentStage('');
+    setReport(null);
+    setError(null);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Automated Peer Review System
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                AI-powered manuscript review using Claude API
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-slate-600">System Online</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Instructions Banner */}
+        {!isReviewing && !report && (
+          <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-blue-900 mb-2">
+              How it works
+            </h2>
+            <ul className="space-y-2 text-sm text-blue-800">
+              <li className="flex items-start">
+                <span className="mr-2">1.</span>
+                <span>
+                  Upload your research article (PDF format) and specify the target journal
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">2.</span>
+                <span>
+                  The Editor (Dr. Marcia Chen) assesses your article and selects 2
+                  specialist reviewers
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">3.</span>
+                <span>
+                  Expert reviewers provide detailed feedback based on their field expertise
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">4.</span>
+                <span>
+                  The system iterates up to 3 times or until reviewers recommend acceptance
+                </span>
+              </li>
+              <li className="flex items-start">
+                <span className="mr-2">5.</span>
+                <span>
+                  Receive a comprehensive review report with actionable recommendations
+                </span>
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Upload Form */}
+        {!isReviewing && !report && (
+          <div className="bg-white rounded-lg shadow-md border border-slate-200">
+            <UploadForm onSubmit={handleReviewSubmit} />
+          </div>
+        )}
+
+        {/* Loading Progress */}
+        {isReviewing && !report && (
+          <div className="bg-white rounded-lg shadow-md border border-slate-200 p-8">
+            <LoadingProgress
+              progress={progress}
+              currentStage={currentStage}
+              error={error}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && !isReviewing && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-red-900 mb-2">
+              Review Failed
+            </h3>
+            <p className="text-sm text-red-800 mb-4">{error}</p>
+            <button
+              onClick={handleNewReview}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Review Results */}
+        {report && (
+          <div>
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-slate-900">Review Report</h2>
+              <button
+                onClick={handleNewReview}
+                className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 transition-colors text-sm font-medium"
+              >
+                New Review
+              </button>
+            </div>
+            <ReviewResults report={report} />
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center text-sm text-slate-600">
+            <p>
+              Powered by{' '}
+              <a
+                href="https://www.anthropic.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Anthropic Claude API
+              </a>
+            </p>
+            <p className="mt-1">
+              Advanced AI peer review system with 100+ specialist reviewers
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </footer>
+    </main>
   );
 }
