@@ -30,11 +30,11 @@ const anthropic = new Anthropic({
 
 /**
  * Claude model to use for API calls
- * Sonnet provides excellent quality/cost balance
+ * Haiku 4.5 provides excellent quality/cost balance (Oct 2025 release)
  * Can be overridden via environment variable
  */
 const CLAUDE_MODEL =
-  process.env.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022';
+  process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
 
 /**
  * Maximum tokens for Claude responses
