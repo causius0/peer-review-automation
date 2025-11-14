@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import type { ReviewReport, ReviewIteration, PeerReview } from '@/types';
+import { formatReportAsMarkdown } from '@/lib/formatters/markdown';
 
 interface ReviewResultsProps {
   report: ReviewReport;
@@ -49,6 +50,82 @@ export default function ReviewResults({ report }: ReviewResultsProps) {
       default:
         return 'text-slate-700 bg-slate-100 border-slate-300';
     }
+  };
+
+  const downloadJSON = () => {
+    const jsonStr = JSON.stringify(report, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `review-${report.articleTitle.replace(/\s+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadMarkdown = () => {
+    const markdown = formatReportAsMarkdown(report);
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `review-${report.articleTitle.replace(/\s+/g, '-')}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPDF = () => {
+    const markdown = formatReportAsMarkdown(report);
+
+    // Create a new window with the markdown content formatted for print
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to download PDF');
+      return;
+    }
+
+    // Convert markdown to HTML for better PDF rendering
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Peer Review Report - ${report.articleTitle}</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+              color: #333;
+            }
+            h1 { color: #1a202c; border-bottom: 3px solid #4299e1; padding-bottom: 10px; }
+            h2 { color: #2d3748; border-bottom: 2px solid #cbd5e0; padding-bottom: 8px; margin-top: 30px; }
+            h3 { color: #4a5568; margin-top: 20px; }
+            h4 { color: #718096; margin-top: 15px; }
+            strong { color: #2d3748; }
+            ul, ol { margin-left: 20px; }
+            li { margin: 5px 0; }
+            hr { border: none; border-top: 1px solid #e2e8f0; margin: 30px 0; }
+            @media print {
+              body { padding: 0; }
+              h2 { page-break-before: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <pre style="white-space: pre-wrap; font-family: inherit;">${markdown.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    // Wait for content to load, then trigger print dialog
+    printWindow.onload = () => {
+      printWindow.print();
+    };
   };
 
   return (
@@ -267,20 +344,27 @@ export default function ReviewResults({ report }: ReviewResultsProps) {
       </div>
 
       {/* Export Buttons */}
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center space-x-4 flex-wrap gap-y-3">
         <button
-          onClick={() => {
-            const jsonStr = JSON.stringify(report, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `review-${report.articleTitle.replace(/\s+/g, '-')}.json`;
-            a.click();
-          }}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          onClick={downloadMarkdown}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-md"
+          title="Download as Markdown file"
         >
-          Export as JSON
+          📄 Export as Markdown
+        </button>
+        <button
+          onClick={downloadPDF}
+          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium shadow-md"
+          title="Print to PDF (uses browser print dialog)"
+        >
+          📑 Export as PDF
+        </button>
+        <button
+          onClick={downloadJSON}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+          title="Download as JSON file"
+        >
+          💾 Export as JSON
         </button>
       </div>
     </div>
