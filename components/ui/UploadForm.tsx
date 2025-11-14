@@ -1,7 +1,8 @@
 /**
  * Upload Form Component
  *
- * Provides both plain text input and PDF upload with journal name input.
+ * Medical manuscript submission form for peer review
+ * Accepts plain text input only, focused on medical research
  */
 
 'use client';
@@ -13,9 +14,7 @@ interface UploadFormProps {
 }
 
 export default function UploadForm({ onSubmit }: UploadFormProps) {
-  const [inputMode, setInputMode] = useState<'text' | 'pdf'>('text');
   const [articleText, setArticleText] = useState('');
-  const [journalName, setJournalName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   /**
@@ -24,15 +23,15 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!journalName.trim() || !articleText.trim()) {
+    if (!articleText.trim()) {
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // For text mode, pass the text directly
-      onSubmit(articleText, 'article.txt', journalName.trim(), true);
+      // Pass the text directly - journal is implied to be medical
+      onSubmit(articleText, 'medical-manuscript.txt', 'Medical Journal', true);
     } catch (error) {
       console.error('Error processing submission:', error);
       alert('Failed to process submission. Please try again.');
@@ -40,85 +39,76 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
     }
   };
 
-  const isValid = articleText.trim().length > 100 && journalName.trim().length >= 2;
+  const isValid = articleText.trim().length > 100;
 
   return (
-    <form onSubmit={handleSubmit} className="p-8">
-      <div className="space-y-6">
-        {/* Mode Toggle */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Input Method
-          </label>
-          <div className="flex rounded-lg overflow-hidden border border-slate-300">
-            <button
-              type="button"
-              onClick={() => setInputMode('text')}
-              className={`flex-1 py-2 px-4 font-medium transition-colors ${
-                inputMode === 'text'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              Paste Text
-            </button>
-            <button
-              type="button"
-              onClick={() => setInputMode('pdf')}
-              className={`flex-1 py-2 px-4 font-medium transition-colors ${
-                inputMode === 'pdf'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-              disabled
-            >
-              Upload PDF (Coming Soon)
-            </button>
-          </div>
+    <form onSubmit={handleSubmit} className="p-10">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="text-center pb-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            Submit Medical Manuscript
+          </h2>
+          <p className="text-slate-600">
+            Reviewed by Dr. Eric Topol and expert medical specialists
+          </p>
         </div>
 
         {/* Text Input Area */}
-        {inputMode === 'text' && (
-          <div>
-            <label
-              htmlFor="articleText"
-              className="block text-sm font-medium text-slate-700 mb-2"
-            >
-              Article Text
-            </label>
-            <textarea
-              id="articleText"
-              value={articleText}
-              onChange={(e) => setArticleText(e.target.value)}
-              placeholder="Paste your research article text here (abstract, introduction, methods, results, discussion, etc.)..."
-              className="w-full h-96 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 font-mono text-sm resize-y"
-              required
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Minimum 100 characters required. Include your abstract, methods, results, and discussion.
-            </p>
-          </div>
-        )}
-
-        {/* Journal Name Input */}
         <div>
           <label
-            htmlFor="journalName"
-            className="block text-sm font-medium text-slate-700 mb-2"
+            htmlFor="articleText"
+            className="block text-base font-semibold text-slate-700 mb-3"
           >
-            Target Journal
+            Manuscript Text
           </label>
-          <input
-            type="text"
-            id="journalName"
-            value={journalName}
-            onChange={(e) => setJournalName(e.target.value)}
-            placeholder="e.g., Nature, Science, Cell, NEJM, Journal of Public Health Policy"
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400"
+          <div className="bg-slate-50 rounded-lg p-4 mb-3 border border-slate-200">
+            <p className="text-sm text-slate-600">
+              <strong>Required sections:</strong> Abstract and Methods
+              <br />
+              <span className="text-xs text-slate-500 mt-1 block">
+                You may also include Introduction, Results, and Discussion for context
+              </span>
+            </p>
+          </div>
+          <textarea
+            id="articleText"
+            value={articleText}
+            onChange={(e) => setArticleText(e.target.value)}
+            placeholder="Paste your medical research manuscript here...
+
+ABSTRACT
+Background: [Your background]
+Methods: [Your methods]
+Results: [Your results]
+Conclusions: [Your conclusions]
+
+METHODS
+Study Design: [Details]
+Participants: [Details]
+Statistical Analysis: [Details]
+..."
+            className="w-full h-[32rem] px-5 py-4 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all text-slate-900 placeholder-slate-400 text-sm leading-relaxed resize-y shadow-inner bg-white"
             required
           />
-          <p className="mt-1 text-xs text-slate-500">
-            Enter the name of the journal you're targeting for submission
+          <p className="mt-2 text-sm text-slate-500 flex items-start gap-2">
+            <svg
+              className="w-4 h-4 mt-0.5 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>
+              Minimum 100 characters. The review will focus on your Abstract and
+              Methods sections specifically.
+            </span>
           </p>
         </div>
 
@@ -127,11 +117,11 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
           type="submit"
           disabled={!isValid || isProcessing}
           className={`
-            w-full py-4 px-6 rounded-lg font-medium text-white
-            transition-all duration-200 transform
+            w-full py-5 px-8 rounded-lg font-semibold text-lg text-white
+            transition-all duration-300 transform
             ${
               isValid && !isProcessing
-                ? 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] shadow-md hover:shadow-lg'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:scale-[1.01] shadow-lg hover:shadow-xl'
                 : 'bg-slate-300 cursor-not-allowed'
             }
           `}
@@ -139,7 +129,7 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
           {isProcessing ? (
             <span className="flex items-center justify-center">
               <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                className="animate-spin -ml-1 mr-3 h-6 w-6 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -158,20 +148,71 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              Processing...
+              Submitting for Review...
             </span>
           ) : (
-            'Start Peer Review'
+            <>
+              Begin Peer Review Process
+              <svg
+                className="inline-block ml-2 w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </>
           )}
         </button>
 
         {/* Info Box */}
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <p className="text-xs text-slate-600">
-            <strong>What happens next:</strong> Your article will be reviewed by AI
-            agents modeled after world-class researchers. The process typically takes
-            2-5 minutes and includes editorial assessment, specialist peer reviews, and
-            iterative feedback synthesis.
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-600 rounded-r-lg p-6">
+          <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <svg
+              className="w-5 h-5 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Review Process
+          </h3>
+          <ul className="space-y-2 text-sm text-slate-700">
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 font-bold">1.</span>
+              <span>
+                <strong>Editorial Assessment</strong> - Dr. Eric Topol reviews your
+                Abstract and Methods
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 font-bold">2.</span>
+              <span>
+                <strong>Specialist Review</strong> - Two expert reviewers conduct
+                parallel assessment
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 font-bold">3.</span>
+              <span>
+                <strong>Final Report</strong> - Comprehensive feedback with actionable
+                recommendations
+              </span>
+            </li>
+          </ul>
+          <p className="mt-4 text-xs text-slate-600 italic">
+            Expected duration: 1-2 minutes
           </p>
         </div>
       </div>

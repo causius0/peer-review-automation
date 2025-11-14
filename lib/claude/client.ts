@@ -30,17 +30,47 @@ const anthropic = new Anthropic({
 
 /**
  * Claude model to use for API calls
- * Haiku 4.5 provides excellent quality/cost balance (Oct 2025 release)
- * Can be overridden via environment variable
+ * Using Claude 3.5 Haiku for cost-effective performance
  */
 const CLAUDE_MODEL =
-  process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001';
+  process.env.CLAUDE_MODEL || 'claude-3-5-haiku-20241022';
 
 /**
  * Maximum tokens for Claude responses
  * Increased for detailed reviews
  */
 const MAX_TOKENS = 4096;
+
+/**
+ * Token usage tracking
+ */
+let totalTokensUsed = 0;
+const MAX_TOTAL_TOKENS = 100000; // Safety limit to avoid overrunning API
+
+/**
+ * Gets current token usage
+ */
+export function getTokenUsage(): number {
+  return totalTokensUsed;
+}
+
+/**
+ * Resets token usage counter
+ */
+export function resetTokenUsage(): void {
+  totalTokensUsed = 0;
+}
+
+/**
+ * Checks if we're approaching token limit
+ */
+export function checkTokenLimit(): void {
+  if (totalTokensUsed > MAX_TOTAL_TOKENS) {
+    throw new Error(
+      `Token limit exceeded: ${totalTokensUsed}/${MAX_TOTAL_TOKENS} tokens used`
+    );
+  }
+}
 
 /**
  * Calls Claude API with a system prompt and returns the response
@@ -54,6 +84,9 @@ async function callClaude(
   systemPrompt: string,
   temperature: number = 0.3
 ): Promise<string> {
+  // Check token limit before making call
+  checkTokenLimit();
+
   try {
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -67,6 +100,13 @@ async function callClaude(
       ],
       system: systemPrompt,
     });
+
+    // Track token usage
+    const tokensUsed = message.usage.input_tokens + message.usage.output_tokens;
+    totalTokensUsed += tokensUsed;
+    console.log(
+      `[Token Usage] This call: ${tokensUsed}, Total: ${totalTokensUsed}/${MAX_TOTAL_TOKENS}`
+    );
 
     // Extract text content from response
     const textContent = message.content.find((block) => block.type === 'text');
