@@ -2,7 +2,6 @@
  * Upload Form Component
  *
  * Provides both plain text input and PDF upload with journal name input.
- * Redesigned with Perplexity-inspired modern aesthetic.
  */
 
 'use client';
@@ -11,9 +10,10 @@ import { useState } from 'react';
 
 interface UploadFormProps {
   onSubmit: (content: string, filename: string, journalName: string, isText: boolean) => void;
+  isDarkMode?: boolean;
 }
 
-export default function UploadForm({ onSubmit }: UploadFormProps) {
+export default function UploadForm({ onSubmit, isDarkMode = false }: UploadFormProps) {
   const [inputMode, setInputMode] = useState<'text' | 'pdf'>('text');
   const [articleText, setArticleText] = useState('');
   const [journalName, setJournalName] = useState('');
@@ -46,41 +46,35 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
   return (
     <form onSubmit={handleSubmit} className="p-8">
       <div className="space-y-6">
-        {/* Mode Toggle - Modern Segmented Control */}
+        {/* Mode Toggle */}
         <div>
-          <label
-            className="block text-sm font-medium mb-3"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
+          <label className={`block text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
             Input Method
           </label>
-          <div
-            className="flex rounded-xl p-1"
-            style={{
-              background: 'var(--color-bg-elevated)'
-            }}
-          >
+          <div className={`flex rounded-lg overflow-hidden border ${isDarkMode ? 'border-slate-600' : 'border-slate-300'}`}>
             <button
               type="button"
               onClick={() => setInputMode('text')}
-              className={`flex-1 py-2.5 px-4 font-medium rounded-lg transition-all ${
-                inputMode === 'text' ? 'shadow-lg' : ''
+              className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                inputMode === 'text'
+                  ? 'bg-blue-600 text-white'
+                  : isDarkMode
+                  ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'bg-white text-slate-700 hover:bg-slate-50'
               }`}
-              style={{
-                background: inputMode === 'text' ? 'var(--gradient-primary)' : 'transparent',
-                color: inputMode === 'text' ? 'white' : 'var(--color-text-tertiary)'
-              }}
             >
               Paste Text
             </button>
             <button
               type="button"
               onClick={() => setInputMode('pdf')}
-              className="flex-1 py-2.5 px-4 font-medium rounded-lg transition-all opacity-50 cursor-not-allowed"
-              style={{
-                background: inputMode === 'pdf' ? 'var(--gradient-primary)' : 'transparent',
-                color: inputMode === 'pdf' ? 'white' : 'var(--color-text-tertiary)'
-              }}
+              className={`flex-1 py-2 px-4 font-medium transition-colors ${
+                inputMode === 'pdf'
+                  ? 'bg-blue-600 text-white'
+                  : isDarkMode
+                  ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  : 'bg-white text-slate-700 hover:bg-slate-50'
+              }`}
               disabled
             >
               Upload PDF (Coming Soon)
@@ -88,13 +82,12 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
           </div>
         </div>
 
-        {/* Text Input Area - Code Editor Style */}
+        {/* Text Input Area */}
         {inputMode === 'text' && (
           <div>
             <label
               htmlFor="articleText"
-              className="block text-sm font-medium mb-3"
-              style={{ color: 'var(--color-text-secondary)' }}
+              className={`block text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}
             >
               Article Text
             </label>
@@ -103,24 +96,15 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
               value={articleText}
               onChange={(e) => setArticleText(e.target.value)}
               placeholder="Paste your research article text here (abstract, introduction, methods, results, discussion, etc.)..."
-              className="w-full h-96 px-4 py-3 rounded-xl transition-all resize-y font-mono text-sm"
-              style={{
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border-primary)',
-                color: 'var(--color-text-primary)'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--color-accent-primary)';
-                e.target.style.boxShadow = 'var(--glow-primary)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--color-border-primary)';
-                e.target.style.boxShadow = 'none';
-              }}
+              className={`w-full h-96 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all font-mono text-sm resize-y ${
+                isDarkMode
+                  ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400'
+                  : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+              }`}
               required
             />
-            <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Minimum 100 characters required. For demos, articles over 15,000 characters will be automatically truncated to avoid rate limits.
+            <p className={`mt-1 text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Minimum 100 characters required. Include your abstract, methods, results, and discussion.
             </p>
           </div>
         )}
@@ -129,8 +113,7 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
         <div>
           <label
             htmlFor="journalName"
-            className="block text-sm font-medium mb-3"
-            style={{ color: 'var(--color-text-secondary)' }}
+            className={`block text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}
           >
             Target Journal
           </label>
@@ -140,50 +123,33 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
             value={journalName}
             onChange={(e) => setJournalName(e.target.value)}
             placeholder="e.g., Nature, Science, Cell, NEJM, Journal of Public Health Policy"
-            className="w-full px-4 py-3 rounded-xl transition-all"
-            style={{
-              background: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border-primary)',
-              color: 'var(--color-text-primary)'
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = 'var(--color-accent-primary)';
-              e.target.style.boxShadow = 'var(--glow-primary)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = 'var(--color-border-primary)';
-              e.target.style.boxShadow = 'none';
-            }}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+              isDarkMode
+                ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400'
+                : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+            }`}
             required
           />
-          <p className="mt-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <p className={`mt-1 text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             Enter the name of the journal you're targeting for submission
           </p>
         </div>
 
-        {/* Submit Button - Prominent CTA */}
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={!isValid || isProcessing}
-          className="w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-300 transform relative overflow-hidden"
-          style={{
-            background: isValid && !isProcessing ? 'var(--gradient-primary)' : 'var(--color-bg-elevated)',
-            opacity: isValid && !isProcessing ? 1 : 0.5,
-            cursor: isValid && !isProcessing ? 'pointer' : 'not-allowed',
-            boxShadow: isValid && !isProcessing ? '0 4px 20px rgba(59, 130, 246, 0.4)' : 'none'
-          }}
-          onMouseEnter={(e) => {
-            if (isValid && !isProcessing) {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 30px rgba(59, 130, 246, 0.6)';
+          className={`
+            w-full py-4 px-6 rounded-lg font-medium text-white
+            transition-all duration-200 transform
+            ${
+              isValid && !isProcessing
+                ? 'bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] shadow-md hover:shadow-lg'
+                : isDarkMode
+                ? 'bg-slate-700 cursor-not-allowed'
+                : 'bg-slate-300 cursor-not-allowed'
             }
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            if (isValid && !isProcessing) {
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(59, 130, 246, 0.4)';
-            }
-          }}
+          `}
         >
           {isProcessing ? (
             <span className="flex items-center justify-center">
@@ -210,30 +176,14 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
               Processing...
             </span>
           ) : (
-            <>
-              <span className="relative z-10">Start Peer Review</span>
-              {isValid && (
-                <div
-                  className="absolute inset-0 -z-0 opacity-0 hover:opacity-100 transition-opacity"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)'
-                  }}
-                />
-              )}
-            </>
+            'Start Peer Review'
           )}
         </button>
 
         {/* Info Box */}
-        <div
-          className="rounded-xl p-4"
-          style={{
-            background: 'rgba(59, 130, 246, 0.05)',
-            border: '1px solid rgba(59, 130, 246, 0.1)'
-          }}
-        >
-          <p className="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
-            <strong style={{ color: 'var(--color-text-secondary)' }}>What happens next:</strong> Your article will be reviewed by AI
+        <div className={`${isDarkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'} border rounded-lg p-4`}>
+          <p className={`text-xs ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <strong>What happens next:</strong> Your article will be reviewed by AI
             agents modeled after world-class researchers. The process typically takes
             2-5 minutes and includes editorial assessment, specialist peer reviews, and
             iterative feedback synthesis.

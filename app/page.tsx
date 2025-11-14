@@ -7,12 +7,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ReviewReport } from '@/types';
 import UploadForm from '@/components/ui/UploadForm';
 import ReviewResults from '@/components/review/ReviewResults';
 import LoadingProgress from '@/components/ui/LoadingProgress';
-import AnimatedBackground from '@/components/ui/AnimatedBackground';
 
 export default function Home() {
   const [isReviewing, setIsReviewing] = useState(false);
@@ -20,6 +19,25 @@ export default function Home() {
   const [currentStage, setCurrentStage] = useState('');
   const [report, setReport] = useState<ReviewReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+
+    setIsDarkMode(shouldBeDark);
+    document.documentElement.setAttribute('data-theme', shouldBeDark ? 'dark' : 'light');
+  }, []);
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = !isDarkMode;
+    setIsDarkMode(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme ? 'dark' : 'light');
+    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+  };
 
   /**
    * Handles file upload and initiates review process
@@ -80,130 +98,87 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
-      <AnimatedBackground />
-
+    <main className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-slate-900 to-slate-800' : 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
       {/* Header */}
-      <header className="relative z-10 backdrop-blur-sm bg-opacity-50 border-b border-[var(--color-border-primary)]">
+      <header className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-b shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
                 Automated Peer Review System
               </h1>
-              <p className="mt-1 text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+              <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 AI-powered manuscript review using Claude API
               </p>
             </div>
-            <div
-              className="flex items-center gap-2 px-4 py-2 rounded-full border"
-              style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderColor: 'rgba(16, 185, 129, 0.3)'
-              }}
-            >
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{
-                  background: 'var(--color-accent-success)',
-                  boxShadow: 'var(--glow-success)',
-                  animation: 'neuralPulse 2s ease-in-out infinite'
-                }}
-              ></div>
-              <span className="text-sm font-medium" style={{ color: 'var(--color-accent-success)' }}>
-                System Online
-              </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>System Online</span>
+              </div>
+              {/* Theme Toggle Button */}
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'bg-slate-700 hover:bg-slate-600 text-yellow-400'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+                aria-label="Toggle theme"
+              >
+                {isDarkMode ? (
+                  // Sun icon
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                  </svg>
+                ) : (
+                  // Moon icon
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Instructions Banner */}
         {!isReviewing && !report && (
-          <div
-            className="mb-8 rounded-2xl p-6 backdrop-blur-sm border"
-            style={{
-              background: 'rgba(59, 130, 246, 0.05)',
-              borderColor: 'rgba(59, 130, 246, 0.2)'
-            }}
-          >
-            <h2
-              className="text-lg font-semibold mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
+          <div className={`mb-8 ${isDarkMode ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-50 border-blue-200'} border rounded-lg p-6`}>
+            <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-900'} mb-2`}>
               How it works
             </h2>
-            <ul className="space-y-3 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-              <li className="flex items-start gap-3">
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5"
-                  style={{
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}
-                >
-                  1
-                </span>
+            <ul className={`space-y-2 text-sm ${isDarkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+              <li className="flex items-start">
+                <span className="mr-2">1.</span>
                 <span>
                   Upload your research article (PDF format) and specify the target journal
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5"
-                  style={{
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}
-                >
-                  2
-                </span>
+              <li className="flex items-start">
+                <span className="mr-2">2.</span>
                 <span>
                   The Editor (Dr. Marcia Chen) assesses your article and selects 2
                   specialist reviewers
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5"
-                  style={{
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}
-                >
-                  3
-                </span>
+              <li className="flex items-start">
+                <span className="mr-2">3.</span>
                 <span>
                   Expert reviewers provide detailed feedback based on their field expertise
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5"
-                  style={{
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}
-                >
-                  4
-                </span>
+              <li className="flex items-start">
+                <span className="mr-2">4.</span>
                 <span>
                   The system iterates up to 3 times or until reviewers recommend acceptance
                 </span>
               </li>
-              <li className="flex items-start gap-3">
-                <span
-                  className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-0.5"
-                  style={{
-                    background: 'var(--gradient-primary)',
-                    color: 'white'
-                  }}
-                >
-                  5
-                </span>
+              <li className="flex items-start">
+                <span className="mr-2">5.</span>
                 <span>
                   Receive a comprehensive review report with actionable recommendations
                 </span>
@@ -214,26 +189,14 @@ export default function Home() {
 
         {/* Upload Form */}
         {!isReviewing && !report && (
-          <div
-            className="rounded-2xl backdrop-blur-sm border"
-            style={{
-              background: 'var(--color-bg-card)',
-              borderColor: 'var(--color-border-primary)'
-            }}
-          >
-            <UploadForm onSubmit={handleReviewSubmit} />
+          <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} rounded-lg shadow-md border`}>
+            <UploadForm onSubmit={handleReviewSubmit} isDarkMode={isDarkMode} />
           </div>
         )}
 
         {/* Loading Progress */}
         {isReviewing && !report && (
-          <div
-            className="rounded-2xl backdrop-blur-sm border p-8"
-            style={{
-              background: 'var(--color-bg-card)',
-              borderColor: 'var(--color-border-primary)'
-            }}
-          >
+          <div className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} rounded-lg shadow-md border p-8`}>
             <LoadingProgress
               progress={progress}
               currentStage={currentStage}
@@ -244,29 +207,14 @@ export default function Home() {
 
         {/* Error Display */}
         {error && !isReviewing && (
-          <div
-            className="rounded-2xl border p-6"
-            style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              borderColor: 'rgba(239, 68, 68, 0.3)'
-            }}
-          >
-            <h3
-              className="text-lg font-semibold mb-2"
-              style={{ color: 'var(--color-accent-error)' }}
-            >
+          <div className={`${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'} border rounded-lg p-6`}>
+            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-red-300' : 'text-red-900'} mb-2`}>
               Review Failed
             </h3>
-            <p className="text-sm mb-4" style={{ color: 'var(--color-text-secondary)' }}>
-              {error}
-            </p>
+            <p className={`text-sm ${isDarkMode ? 'text-red-200' : 'text-red-800'} mb-4`}>{error}</p>
             <button
               onClick={handleNewReview}
-              className="px-4 py-2 rounded-lg font-medium transition-all"
-              style={{
-                background: 'var(--color-accent-error)',
-                color: 'white'
-              }}
+              className={`px-4 py-2 ${isDarkMode ? 'bg-red-700 hover:bg-red-600' : 'bg-red-600 hover:bg-red-700'} text-white rounded-md transition-colors text-sm font-medium`}
             >
               Try Again
             </button>
@@ -277,20 +225,10 @@ export default function Home() {
         {report && (
           <div>
             <div className="mb-4 flex justify-between items-center">
-              <h2
-                className="text-2xl font-bold"
-                style={{ color: 'var(--color-text-primary)' }}
-              >
-                Review Report
-              </h2>
+              <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Review Report</h2>
               <button
                 onClick={handleNewReview}
-                className="px-4 py-2 rounded-lg font-medium transition-all"
-                style={{
-                  background: 'var(--color-bg-elevated)',
-                  color: 'var(--color-text-primary)',
-                  border: '1px solid var(--color-border-primary)'
-                }}
+                className={`px-4 py-2 ${isDarkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-600 hover:bg-slate-700'} text-white rounded-md transition-colors text-sm font-medium`}
               >
                 New Review
               </button>
@@ -301,22 +239,16 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer
-        className="relative z-10 border-t mt-16"
-        style={{
-          borderColor: 'var(--color-border-primary)'
-        }}
-      >
+      <footer className={`${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border-t mt-16`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+          <div className={`text-center text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
             <p>
               Powered by{' '}
               <a
                 href="https://www.anthropic.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium transition-colors"
-                style={{ color: 'var(--color-accent-primary)' }}
+                className="text-blue-600 hover:text-blue-700 font-medium"
               >
                 Anthropic Claude API
               </a>
