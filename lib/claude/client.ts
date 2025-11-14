@@ -43,6 +43,36 @@ const CLAUDE_MODEL =
 const MAX_TOKENS = 4096;
 
 /**
+ * Maximum article length (in characters) to avoid rate limits
+ * ~3000 words = ~4500 tokens (safe for 10k/min limit)
+ */
+const MAX_ARTICLE_LENGTH = 15000;
+
+/**
+ * Delay between API calls (in ms) to avoid rate limits
+ */
+const API_CALL_DELAY = 1500; // 1.5 seconds
+
+/**
+ * Truncates article text if it's too long
+ */
+function truncateArticle(text: string): string {
+  if (text.length <= MAX_ARTICLE_LENGTH) {
+    return text;
+  }
+
+  console.warn(`Article truncated from ${text.length} to ${MAX_ARTICLE_LENGTH} characters to avoid rate limits`);
+  return text.substring(0, MAX_ARTICLE_LENGTH) + '\n\n[Article truncated due to length...]';
+}
+
+/**
+ * Delays execution to avoid rate limits
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Calls Claude API with a system prompt and returns the response
  *
  * @param systemPrompt - The system prompt for Claude
@@ -54,34 +84,60 @@ async function callClaude(
   systemPrompt: string,
   temperature: number = 0.3
 ): Promise<string> {
-  try {
-    const message = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: MAX_TOKENS,
-      temperature,
-      messages: [
-        {
-          role: 'user',
-          content: 'Please provide your assessment in the specified JSON format.',
-        },
-      ],
-      system: systemPrompt,
-    });
+  const maxRetries = 3;
+  let retryCount = 0;
 
-    // Extract text content from response
-    const textContent = message.content.find((block) => block.type === 'text');
+  while (retryCount <= maxRetries) {
+    try {
+      // Add delay before API call to avoid rate limits
+      if (retryCount > 0) {
+        const backoffDelay = API_CALL_DELAY * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`Retry ${retryCount}: Waiting ${backoffDelay}ms before retry...`);
+        await delay(backoffDelay);
+      } else {
+        await delay(API_CALL_DELAY);
+      }
 
-    if (!textContent || textContent.type !== 'text') {
-      throw new Error('No text content in Claude response');
+      const message = await anthropic.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: MAX_TOKENS,
+        temperature,
+        messages: [
+          {
+            role: 'user',
+            content: 'Please provide your assessment in the specified JSON format.',
+          },
+        ],
+        system: systemPrompt,
+      });
+
+      // Extract text content from response
+      const textContent = message.content.find((block) => block.type === 'text');
+
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('No text content in Claude response');
+      }
+
+      return textContent.text;
+    } catch (error: any) {
+      console.error('Claude API error:', error);
+
+      // Check if it's a rate limit error
+      if (error?.status === 429 || error?.error?.type === 'rate_limit_error') {
+        retryCount++;
+        if (retryCount <= maxRetries) {
+          console.log(`Rate limit hit. Retrying (${retryCount}/${maxRetries})...`);
+          continue;
+        }
+      }
+
+      throw new Error(
+        `Claude API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
-
-    return textContent.text;
-  } catch (error) {
-    console.error('Claude API error:', error);
-    throw new Error(
-      `Claude API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
   }
+
+  throw new Error('Max retries exceeded for Claude API call');
 }
 
 /**
@@ -158,7 +214,10 @@ export async function getEditorialAssessment(
   journalName: string,
   journalCriteria: string
 ): Promise<EditorialAssessment> {
-  const prompt = getEditorPrompt(articleText, journalName, journalCriteria);
+  // Truncate article to avoid rate limits
+  const truncatedArticle = truncateArticle(articleText);
+
+  const prompt = getEditorPrompt(truncatedArticle, journalName, journalCriteria);
 
   const response = await callClaude(prompt, 0.3);
 
@@ -227,7 +286,10 @@ export async function getPeerReview(
   specialty: Specialty,
   articleText: string
 ): Promise<PeerReview> {
-  const prompt = getReviewerPrompt(specialty, articleText);
+  // Truncate article to avoid rate limits
+  const truncatedArticle = truncateArticle(articleText);
+
+  const prompt = getReviewerPrompt(specialty, truncatedArticle);
 
   const response = await callClaude(prompt, 0.4); // Slightly higher temp for varied feedback
 
@@ -287,11 +349,14 @@ export async function getIterationSynthesis(
   review2: PeerReview,
   iterationNumber: number
 ): Promise<IterationSynthesis> {
+  // Truncate article to avoid rate limits
+  const truncatedArticle = truncateArticle(articleText);
+
   const review1Text = JSON.stringify(review1, null, 2);
   const review2Text = JSON.stringify(review2, null, 2);
 
   const prompt = getSynthesisPrompt(
-    articleText,
+    truncatedArticle,
     review1Text,
     review2Text,
     iterationNumber
