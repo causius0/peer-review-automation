@@ -47,36 +47,40 @@ export async function extractTextFromPDF(
   pdfBuffer: Buffer
 ): Promise<PDFExtractionResult> {
   try {
-    // Dynamically import pdf-parse only when needed (runtime, not build time)
-    // @ts-ignore - pdf-parse doesn't have proper TS types
-    let pdf;
+    // Try different ways to import and use pdf-parse
+    let data;
 
-    // Try multiple import patterns to handle different module systems
     try {
-      const pdfParse = require('pdf-parse');
-
-      // Try different ways the module might be exported
+      // Method 1: Try as default function (common pattern)
+      const pdfParse = (await import('pdf-parse')).default;
       if (typeof pdfParse === 'function') {
-        pdf = pdfParse;
-      } else if (pdfParse.default && typeof pdfParse.default === 'function') {
-        pdf = pdfParse.default;
-      } else if (pdfParse.PDFParse && typeof pdfParse.PDFParse === 'function') {
-        // The actual export name in the new version
-        pdf = pdfParse.PDFParse;
-      } else if (pdfParse.pdf && typeof pdfParse.pdf === 'function') {
-        pdf = pdfParse.pdf;
+        data = await pdfParse(pdfBuffer);
       } else {
-        // Log what we got to help debug
-        console.error('pdf-parse module structure:', Object.keys(pdfParse));
-        throw new Error('Could not find pdf parsing function in module');
+        throw new Error('Default export is not a function');
       }
-    } catch (importError) {
-      console.error('Failed to import pdf-parse:', importError);
-      throw new Error('PDF parsing library not available');
+    } catch (e1) {
+      try {
+        // Method 2: Try the PDFParse static method
+        const { PDFParse } = await import('pdf-parse');
+        // @ts-ignore
+        if (PDFParse && typeof PDFParse.parse === 'function') {
+          // @ts-ignore
+          data = await PDFParse.parse(pdfBuffer);
+        } else {
+          throw new Error('PDFParse.parse is not a function');
+        }
+      } catch (e2) {
+        // Method 3: Try direct module export as function
+        const pdfParseModule = await import('pdf-parse');
+        // @ts-ignore
+        if (typeof pdfParseModule === 'function') {
+          // @ts-ignore
+          data = await pdfParseModule(pdfBuffer);
+        } else {
+          throw new Error(`Cannot find working pdf-parse method. Error 1: ${e1}, Error 2: ${e2}`);
+        }
+      }
     }
-
-    // Parse the PDF file
-    const data = await pdf(pdfBuffer);
 
     // Extract and clean the text
     const cleanedText = cleanExtractedText(data.text);
